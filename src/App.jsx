@@ -5,6 +5,7 @@ import {
   set,
   push,
   onValue,
+  update,
   remove,
 } from "firebase/database";
 
@@ -13,20 +14,19 @@ function App() {
 
   let [text, setText] = useState("");
   let [todo, setTodo] = useState([]);
+  let [toggleBtn, setToggleBtn] = useState(false);
+  let [allInfo, setAllInfo] = useState();
 
   useEffect(() => {
     const todoRef = ref(db, "alltodo");
     onValue(todoRef, (snapshot) => {
       let arr = [];
       snapshot.forEach((item) => {
-        // console.log(item.val());
         arr.push({ ...item.val(), id: item.key });
       });
       setTodo(arr);
     });
   }, []);
-
-  console.log(todo);
 
   let handleText = (e) => {
     setText(e.target.value);
@@ -36,43 +36,64 @@ function App() {
     set(push(ref(db, "alltodo")), {
       todoText: text,
     });
+    setText("");
   };
 
   let handleDelete = (id) => {
-    remove(ref(db, "alltodo/" + id)).then(() => {
-      console.log("delete done");
+    remove(ref(db, "alltodo/" + id)).then(() => {});
+  };
+
+  let handleUpdate = () => {
+    update(ref(db, "alltodo/" + allInfo.id), {
+      ...allInfo,
+      todoText: text,
+    }).then(() => {
+      console.log("update done");
+      setText("");
+      setToggleBtn(false);
     });
   };
 
-  let handleEdit = (id) => {
-    console.log(id);
+  let handleEdit = (item) => {
+    setToggleBtn(true);
+    setAllInfo(item);
+    setText(item.todoText);
   };
 
   return (
     <>
-      <div>
-        <input
-          onChange={handleText}
-          type="text"
-          placeholder="Enter your text"
-        />
-        <button onClick={handleSubmit}>Submit</button>
-      </div>
-      <div>
-        <ul>
-          {todo.length > 0 ? (
-            todo.map((item, index) => (
-              <li key={index}>
-                {item.todoText}
-                <button onClick={() => handleDelete(item.id)}>Delete</button>
-                <button onClick={() => handleEdit(item.id)}>Edit</button>
-              </li>
-            ))
+      <section className="container">
+        <div>
+          <input
+            onChange={handleText}
+            type="text"
+            placeholder="Enter your text"
+            value={text}
+          />
+          {toggleBtn ? (
+            <button onClick={handleUpdate}>Update</button>
           ) : (
-            <h1>Loading...</h1>
+            <button onClick={handleSubmit}>Submit</button>
           )}
-        </ul>
-      </div>
+        </div>
+        <div>
+          <ul>
+            {todo.length > 0 ? (
+              todo.map((item, index) => (
+                <li key={index}>
+                  {item.todoText}
+                  <button onClick={() => handleDelete(item.id)}>Delete</button>
+                  <button onClick={() => handleEdit(item)}>Edit</button>
+                </li>
+              ))
+            ) : todo.length == 0 ? (
+              <h1>No Data found</h1>
+            ) : (
+              <h1>Loading...</h1>
+            )}
+          </ul>
+        </div>
+      </section>
     </>
   );
 }
